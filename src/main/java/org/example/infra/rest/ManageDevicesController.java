@@ -7,7 +7,11 @@ import org.example.app.usecase.CreateDeviceUseCase;
 import org.example.app.usecase.DeleteDeviceResult;
 import org.example.app.usecase.DeleteDeviceUseCase;
 import org.example.app.usecase.GetDeviceByIdUseCase;
+import org.example.app.usecase.ListDevicesUseCase;
 import org.example.domain.Device;
+import org.example.domain.enums.DeviceStateEnum;
+import org.example.domain.filter.DeviceFilter;
+import org.example.domain.model.CursorPage;
 import org.example.infra.rest.dto.CreateDeviceRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -15,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,11 +32,22 @@ public class ManageDevicesController {
     private final CreateDeviceUseCase createDeviceUseCase;
     private final GetDeviceByIdUseCase getDeviceByIdUseCase;
     private final DeleteDeviceUseCase deleteDeviceUseCase;
+    private final ListDevicesUseCase listDevicesUseCase;
 
     @PostMapping
     public ResponseEntity<Device> createDevice(@Valid @RequestBody CreateDeviceRequest createDeviceRequest){
         Device response = createDeviceUseCase.create(createDeviceRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping
+    public ResponseEntity<CursorPage<Device>> listDevices(@RequestParam(required = false) String brand,
+                                                    @RequestParam(required = false) DeviceStateEnum state,
+                                                    @RequestParam(required = false) UUID cursor,
+                                                    @RequestParam(defaultValue = "20") int size){
+        DeviceFilter filter = new DeviceFilter(brand, state);
+        CursorPage<Device> devices = listDevicesUseCase.list(filter, cursor, size);
+        return ResponseEntity.ok(devices);
     }
 
     @GetMapping("/{id}")
