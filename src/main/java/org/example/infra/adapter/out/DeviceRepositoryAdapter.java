@@ -30,6 +30,11 @@ public class DeviceRepositoryAdapter implements DeviceRepositoryPort {
         return deviceRepository.findById(id).map(this::toDomain);
     }
 
+    @Override
+    public void deleteById(UUID id) {
+        deviceRepository.deleteById(id);
+    }
+
     private Device toDomain(DeviceEntity entity) {
         return new Device(
                 entity.getId(),

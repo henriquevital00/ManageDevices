@@ -4,6 +4,8 @@ import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.example.app.usecase.CreateDeviceUseCase;
+import org.example.app.usecase.DeleteDeviceResult;
+import org.example.app.usecase.DeleteDeviceUseCase;
 import org.example.app.usecase.GetDeviceByIdUseCase;
 import org.example.domain.Device;
 import org.example.infra.rest.dto.CreateDeviceRequest;
@@ -24,6 +26,7 @@ import java.util.UUID;
 public class ManageDevicesController {
     private final CreateDeviceUseCase createDeviceUseCase;
     private final GetDeviceByIdUseCase getDeviceByIdUseCase;
+    private final DeleteDeviceUseCase deleteDeviceUseCase;
 
     @PostMapping
     public ResponseEntity<Device> createDevice(@Valid @RequestBody CreateDeviceRequest createDeviceRequest){
@@ -36,5 +39,15 @@ public class ManageDevicesController {
         Optional<Device> response = getDeviceByIdUseCase.getById(id);
         return response.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteDeviceById(@PathVariable UUID id){
+        DeleteDeviceResult result = deleteDeviceUseCase.delete(id);
+        return switch (result) {
+            case DELETED -> ResponseEntity.noContent().build();
+            case NOT_FOUND -> ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            case IN_USE -> ResponseEntity.status(HttpStatus.CONFLICT).build();
+        };
     }
 }

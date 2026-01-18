@@ -33,8 +33,6 @@ public class DeviceEntity {
 
     @PrePersist
     protected void onCreate() {
-        if (creationTime == null) {
-            creationTime = LocalDateTime.now();
-        }
+        creationTime = LocalDateTime.now();
     }
 }

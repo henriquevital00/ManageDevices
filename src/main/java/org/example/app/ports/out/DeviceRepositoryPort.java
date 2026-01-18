@@ -8,4 +8,5 @@ import java.util.UUID;
 public interface DeviceRepositoryPort {
     Device save(Device device);
     Optional<Device> findById(UUID id);
+    void deleteById(UUID id);
 }
