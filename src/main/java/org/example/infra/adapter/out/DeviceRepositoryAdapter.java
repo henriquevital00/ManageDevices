@@ -73,12 +73,12 @@ public class DeviceRepositoryAdapter implements DeviceRepositoryPort {
 
         if(filter.brand() != null) {
             spec = spec.and((root, query, cb) ->
-                    cb.like(root.get("brand"), "%" + filter.brand() + "%"));
+                    cb.equal(root.get("brand"), filter.brand()));
         }
 
         if(filter.state() != null) {
             spec = spec.and((root, query, cb) ->
-                    cb.like(root.get("state"), "%" + filter.state() + "%"));
+                    cb.equal(root.get("state"), filter.state()));
         }
 
         return spec;
