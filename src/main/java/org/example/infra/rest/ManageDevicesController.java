@@ -19,7 +19,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -45,7 +44,8 @@ public class ManageDevicesController {
                                                     @RequestParam(required = false) DeviceStateEnum state,
                                                     @RequestParam(required = false) UUID cursor,
                                                     @RequestParam(defaultValue = "20") int size){
-        DeviceFilter filter = new DeviceFilter(brand, state);
+        String normalizedBrand = brand != null ? brand.toUpperCase() : null;
+        DeviceFilter filter = new DeviceFilter(normalizedBrand, state);
         CursorPage<Device> devices = listDevicesUseCase.list(filter, cursor, size);
         return ResponseEntity.ok(devices);
     }

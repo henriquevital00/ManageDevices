@@ -22,12 +22,19 @@ public class CreateDeviceImpl implements CreateDeviceUseCase {
         Device newDevice = new Device(
                 null,
                 request.name(),
-                request.brand(),
+                normalizeBrand(request.brand()),
                 request.state(),
                 LocalDateTime.now()
         );
 
         // Delegate persistence to the output port
         return deviceRepositoryPort.save(newDevice);
+    }
+
+    private String normalizeBrand(String brand) {
+        if (brand == null || brand.isEmpty()) {
+            return brand;
+        }
+        return brand.toUpperCase();
     }
 }
