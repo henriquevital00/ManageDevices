@@ -359,7 +359,7 @@ public class ManageDevicesController {
             @PathVariable UUID id,
 
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "Updated device details",
+                    description = "Updated device details with version for optimistic locking",
                     required = true,
                     content = @Content(
                             schema = @Schema(implementation = UpdateDeviceRequest.class),
@@ -367,7 +367,8 @@ public class ManageDevicesController {
                                     {
                                       "name": "Temperature Sensor A1 - Updated",
                                       "brand": "Samsung",
-                                      "state": "IN_USE"
+                                      "state": "IN_USE",
+                                      "version": 0
                                     }
                                     """)
                     )

@@ -50,7 +50,7 @@ UpdateDeviceImpl implements UpdateDeviceUseCase {
                 normalizeBrand(request.brand()),
                 request.state(),
                 device.creationTime(),
-                device.version()
+                request.version()
         );
 
         deviceHistoryRepositoryPort.save(updatedDevice, OperationTypeEnum.UPDATE);
