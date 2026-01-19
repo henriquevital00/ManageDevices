@@ -11,8 +11,6 @@ import org.example.app.usecase.ListDevicesUseCase;
 import org.example.app.usecase.UpdateDeviceUseCase;
 import org.example.domain.Device;
 import org.example.domain.enums.DeviceStateEnum;
-import org.example.domain.exception.DeviceInUseException;
-import org.example.domain.exception.DeviceNotFoundException;
 import org.example.domain.filter.DeviceFilter;
 import org.example.domain.model.CursorPage;
 import org.example.infra.rest.dto.CreateDeviceRequest;
@@ -75,13 +73,7 @@ public class ManageDevicesController {
     @PutMapping("/{id}")
     public ResponseEntity<Device> updateDevice(@PathVariable UUID id,
                                                @Valid @RequestBody UpdateDeviceRequest updateDeviceRequest) {
-        try {
-            Device updatedDevice = updateDeviceUseCase.update(id, updateDeviceRequest);
-            return ResponseEntity.ok(updatedDevice);
-        } catch (DeviceNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        } catch (DeviceInUseException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
-        }
+        Device updatedDevice = updateDeviceUseCase.update(id, updateDeviceRequest);
+        return ResponseEntity.ok(updatedDevice);
     }
 }
