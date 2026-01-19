@@ -52,26 +52,37 @@ public class DeviceRepositoryAdapter implements DeviceRepositoryPort {
     public CursorPage<Device> findAllByCursor(DeviceFilter filter, UUID cursor, int size) {
         Specification<DeviceEntity> spec = buildSpecification(filter);
 
-        // Add cursor condition if provided
         if (cursor != null) {
-            spec = spec.and((root, query, cb) -> cb.lessThan(root.get("id").as(String.class), cursor.toString()));
+            spec = spec.and((root, query, cb) -> {
+                DeviceEntity cursorDevice = deviceRepository.findById(cursor).orElse(null);
+                if (cursorDevice != null) {
+                    return cb.or(
+                        cb.lessThan(root.get("creationTime"), cursorDevice.getCreationTime()),
+                        cb.and(
+                            cb.equal(root.get("creationTime"), cursorDevice.getCreationTime()),
+                            cb.lessThan(root.get("id").as(String.class), cursor.toString())
+                        )
+                    );
+                }
+                return cb.conjunction();
+            });
         }
 
-        // Fetch one extra to determine if there's a next page
-        Pageable pageable = PageRequest.of(0, size + 1, Sort.by("id").descending());
+        Pageable pageable = PageRequest.of(0, size + 1,
+            Sort.by(Sort.Order.desc("creationTime"), Sort.Order.desc("id")));
         List<DeviceEntity> entities = deviceRepository.findAll(spec, pageable).getContent();
 
         boolean hasNext = entities.size() > size;
-        List<Device> restaurants = entities.stream()
+        List<Device> devices = entities.stream()
                 .limit(size)
                 .map(this::toDomain)
                 .collect(Collectors.toList());
 
-        UUID nextCursor = hasNext && !restaurants.isEmpty()
-                ? restaurants.get(restaurants.size() - 1).id()
+        UUID nextCursor = hasNext && !devices.isEmpty()
+                ? devices.get(devices.size() - 1).id()
                 : null;
 
-        return CursorPage.of(restaurants, nextCursor, size, hasNext);
+        return CursorPage.of(devices, nextCursor, size, hasNext);
     }
 
     private Specification<DeviceEntity> buildSpecification(DeviceFilter filter) {

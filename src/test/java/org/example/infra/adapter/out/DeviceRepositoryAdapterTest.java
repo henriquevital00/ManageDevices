@@ -296,19 +296,25 @@ class DeviceRepositoryAdapterTest {
     @Test
     @DisplayName("Should find devices with cursor")
     void shouldFindDevicesWithCursor() {
-        // Given
-        UUID cursor = UUID.randomUUID();
+        UUID cursorId = deviceId;
         DeviceFilter filter = DeviceFilter.empty();
-        List<DeviceEntity> entities = Arrays.asList(deviceEntity);
+
+        DeviceEntity nextEntity = new DeviceEntity();
+        nextEntity.setId(UUID.randomUUID());
+        nextEntity.setName("Next Device");
+        nextEntity.setBrand("Brand");
+        nextEntity.setState(DeviceStateEnum.AVAILABLE);
+        nextEntity.setCreationTime(now.minusHours(1)); // Earlier than cursor device
+        nextEntity.setVersion(0L);
+
+        List<DeviceEntity> entities = List.of(nextEntity);
         PageImpl<DeviceEntity> page = new PageImpl<>(entities);
 
         when(deviceRepository.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(page);
 
-        // When
-        CursorPage<Device> result = deviceRepositoryAdapter.findAllByCursor(filter, cursor, 20);
+        CursorPage<Device> result = deviceRepositoryAdapter.findAllByCursor(filter, cursorId, 20);
 
-        // Then
         assertThat(result).isNotNull();
         assertThat(result.content()).hasSize(1);
 
@@ -517,5 +523,202 @@ class DeviceRepositoryAdapterTest {
         verify(deviceRepository).save(deviceEntityCaptor.capture());
         DeviceEntity captured = deviceEntityCaptor.getValue();
         assertThat(captured.getVersion()).isNull();
+    }
+
+    @Test
+    @DisplayName("Should order devices by creationTime descending (newest first)")
+    void shouldOrderDevicesByCreationTimeDescending() {
+        // Given
+        DeviceFilter filter = DeviceFilter.empty();
+
+        DeviceEntity oldDevice = new DeviceEntity();
+        oldDevice.setId(UUID.randomUUID());
+        oldDevice.setName("Old Device");
+        oldDevice.setBrand("Brand");
+        oldDevice.setState(DeviceStateEnum.AVAILABLE);
+        oldDevice.setCreationTime(now.minusDays(2));
+        oldDevice.setVersion(0L);
+
+        DeviceEntity newDevice = new DeviceEntity();
+        newDevice.setId(UUID.randomUUID());
+        newDevice.setName("New Device");
+        newDevice.setBrand("Brand");
+        newDevice.setState(DeviceStateEnum.AVAILABLE);
+        newDevice.setCreationTime(now);
+        newDevice.setVersion(0L);
+
+        // Should be ordered newest first
+        List<DeviceEntity> entities = List.of(newDevice, oldDevice);
+        PageImpl<DeviceEntity> page = new PageImpl<>(entities);
+
+        when(deviceRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(page);
+
+        // When
+        CursorPage<Device> result = deviceRepositoryAdapter.findAllByCursor(filter, null, 20);
+
+        // Then
+        assertThat(result.content()).hasSize(2);
+        // Verify ordering is preserved (newest first)
+        assertThat(result.content().get(0).name()).isEqualTo("New Device");
+        assertThat(result.content().get(1).name()).isEqualTo("Old Device");
+
+        verify(deviceRepository).findAll(any(Specification.class), pageableCaptor.capture());
+        Pageable capturedPageable = pageableCaptor.getValue();
+
+        // Verify sort order: creationTime DESC, id DESC
+        assertThat(capturedPageable.getSort().isSorted()).isTrue();
+        assertThat(capturedPageable.getSort().getOrderFor("creationTime")).isNotNull();
+        assertThat(capturedPageable.getSort().getOrderFor("creationTime").isDescending()).isTrue();
+        assertThat(capturedPageable.getSort().getOrderFor("id")).isNotNull();
+        assertThat(capturedPageable.getSort().getOrderFor("id").isDescending()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Should use id as tiebreaker when creationTime is same")
+    void shouldUseIdAsTiebreakerWhenCreationTimeIsSame() {
+        // Given
+        DeviceFilter filter = DeviceFilter.empty();
+        LocalDateTime sameTime = now;
+
+        DeviceEntity device1 = new DeviceEntity();
+        device1.setId(UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"));
+        device1.setName("Device 1");
+        device1.setBrand("Brand");
+        device1.setState(DeviceStateEnum.AVAILABLE);
+        device1.setCreationTime(sameTime);
+        device1.setVersion(0L);
+
+        DeviceEntity device2 = new DeviceEntity();
+        device2.setId(UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"));
+        device2.setName("Device 2");
+        device2.setBrand("Brand");
+        device2.setState(DeviceStateEnum.AVAILABLE);
+        device2.setCreationTime(sameTime);
+        device2.setVersion(0L);
+
+        List<DeviceEntity> entities = List.of(device2, device1); // Ordered by id DESC
+        PageImpl<DeviceEntity> page = new PageImpl<>(entities);
+
+        when(deviceRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(page);
+
+        // When
+        CursorPage<Device> result = deviceRepositoryAdapter.findAllByCursor(filter, null, 20);
+
+        // Then
+        assertThat(result.content()).hasSize(2);
+
+        // Verify sort includes both fields
+        verify(deviceRepository).findAll(any(Specification.class), pageableCaptor.capture());
+        Pageable captured = pageableCaptor.getValue();
+        assertThat(captured.getSort().getOrderFor("creationTime")).isNotNull();
+        assertThat(captured.getSort().getOrderFor("id")).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Should handle cursor with creationTime-based pagination")
+    void shouldHandleCursorWithCreationTimeBasedPagination() {
+        // Given
+        UUID cursorDeviceId = UUID.randomUUID();
+        LocalDateTime cursorTime = now.minusHours(1);
+
+        DeviceEntity cursorDevice = new DeviceEntity();
+        cursorDevice.setId(cursorDeviceId);
+        cursorDevice.setName("Cursor Device");
+        cursorDevice.setBrand("Brand");
+        cursorDevice.setState(DeviceStateEnum.AVAILABLE);
+        cursorDevice.setCreationTime(cursorTime);
+        cursorDevice.setVersion(0L);
+
+        DeviceEntity olderDevice = new DeviceEntity();
+        olderDevice.setId(UUID.randomUUID());
+        olderDevice.setName("Older Device");
+        olderDevice.setBrand("Brand");
+        olderDevice.setState(DeviceStateEnum.AVAILABLE);
+        olderDevice.setCreationTime(cursorTime.minusHours(1));
+        olderDevice.setVersion(0L);
+
+        List<DeviceEntity> entities = List.of(olderDevice);
+        PageImpl<DeviceEntity> page = new PageImpl<>(entities);
+
+        when(deviceRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(page);
+
+        // When
+        CursorPage<Device> result = deviceRepositoryAdapter.findAllByCursor(DeviceFilter.empty(), cursorDeviceId, 20);
+
+        // Then
+        assertThat(result.content()).hasSize(1);
+        assertThat(result.content().get(0).name()).isEqualTo("Older Device");
+
+        verify(deviceRepository).findAll(any(Specification.class), any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("Should handle cursor when cursor device not found")
+    void shouldHandleCursorWhenCursorDeviceNotFound() {
+        // Given
+        UUID nonExistentCursor = UUID.randomUUID();
+
+        List<DeviceEntity> entities = List.of(deviceEntity);
+        PageImpl<DeviceEntity> page = new PageImpl<>(entities);
+
+        when(deviceRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(page);
+
+        // When
+        CursorPage<Device> result = deviceRepositoryAdapter.findAllByCursor(DeviceFilter.empty(), nonExistentCursor, 20);
+
+        // Then
+        assertThat(result.content()).hasSize(1);
+
+        verify(deviceRepository).findAll(any(Specification.class), any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("Should return chronological order from newest to oldest")
+    void shouldReturnChronologicalOrderFromNewestToOldest() {
+        // Given
+        DeviceFilter filter = DeviceFilter.empty();
+
+        DeviceEntity newest = new DeviceEntity();
+        newest.setId(UUID.randomUUID());
+        newest.setName("Newest");
+        newest.setBrand("Brand");
+        newest.setState(DeviceStateEnum.AVAILABLE);
+        newest.setCreationTime(now);
+        newest.setVersion(0L);
+
+        DeviceEntity middle = new DeviceEntity();
+        middle.setId(UUID.randomUUID());
+        middle.setName("Middle");
+        middle.setBrand("Brand");
+        middle.setState(DeviceStateEnum.AVAILABLE);
+        middle.setCreationTime(now.minusHours(5));
+        middle.setVersion(0L);
+
+        DeviceEntity oldest = new DeviceEntity();
+        oldest.setId(UUID.randomUUID());
+        oldest.setName("Oldest");
+        oldest.setBrand("Brand");
+        oldest.setState(DeviceStateEnum.AVAILABLE);
+        oldest.setCreationTime(now.minusDays(1));
+        oldest.setVersion(0L);
+
+        List<DeviceEntity> entities = List.of(newest, middle, oldest);
+        PageImpl<DeviceEntity> page = new PageImpl<>(entities);
+
+        when(deviceRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(page);
+
+        // When
+        CursorPage<Device> result = deviceRepositoryAdapter.findAllByCursor(filter, null, 20);
+
+        // Then
+        assertThat(result.content()).hasSize(3);
+        assertThat(result.content().get(0).name()).isEqualTo("Newest");
+        assertThat(result.content().get(1).name()).isEqualTo("Middle");
+        assertThat(result.content().get(2).name()).isEqualTo("Oldest");
     }
 }
