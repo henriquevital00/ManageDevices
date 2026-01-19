@@ -10,6 +10,7 @@ public record Device (
         String name,
         String brand,
         DeviceStateEnum state,
-        LocalDateTime creationTime
+        LocalDateTime creationTime,
+        Long version
 ){
 }

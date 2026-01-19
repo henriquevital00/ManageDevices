@@ -44,7 +44,8 @@ UpdateDeviceImpl implements UpdateDeviceUseCase {
                 request.name(),
                 normalizeBrand(request.brand()),
                 request.state(),
-                device.creationTime()
+                device.creationTime(),
+                device.version()
         );
 
         return deviceRepositoryPort.save(updatedDevice);

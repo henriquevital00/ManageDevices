@@ -24,7 +24,8 @@ public class CreateDeviceImpl implements CreateDeviceUseCase {
                 request.name(),
                 normalizeBrand(request.brand()),
                 request.state(),
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                null
         );
 
         // Delegate persistence to the output port

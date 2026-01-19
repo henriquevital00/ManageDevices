@@ -1,9 +1,7 @@
 package org.example.infra.adapter.persistence;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.example.domain.enums.DeviceStateEnum;
 
 import java.time.LocalDateTime;
@@ -30,6 +28,10 @@ public class DeviceEntity {
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime creationTime;
+
+    @Version
+    @Column(nullable = false)
+    private Long version;
 
     @PrePersist
     protected void onCreate() {

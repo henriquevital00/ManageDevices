@@ -1,5 +1,6 @@
 package org.example.infra.adapter.out;
 
+import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
 import org.example.app.ports.out.DeviceRepositoryPort;
 import org.example.domain.Device;
@@ -27,9 +28,13 @@ public class DeviceRepositoryAdapter implements DeviceRepositoryPort {
 
     @Override
     public Device save(Device device) {
-        DeviceEntity entity = toEntity(device);
-        DeviceEntity saved = deviceRepository.save(entity);
-        return toDomain(saved);
+        try {
+            DeviceEntity entity = toEntity(device);
+            DeviceEntity saved = deviceRepository.save(entity);
+            return toDomain(saved);
+        } catch (OptimisticLockException | org.springframework.orm.ObjectOptimisticLockingFailureException e) {
+            throw new org.example.domain.exception.OptimisticLockException(device.id());
+        }
     }
 
     @Override
@@ -90,7 +95,8 @@ public class DeviceRepositoryAdapter implements DeviceRepositoryPort {
                 entity.getName(),
                 entity.getBrand(),
                 entity.getState(),
-                entity.getCreationTime()
+                entity.getCreationTime(),
+                entity.getVersion()
         );
     }
 
@@ -104,6 +110,9 @@ public class DeviceRepositoryAdapter implements DeviceRepositoryPort {
         deviceEntity.setState(device.state());
         if (device.creationTime() != null) {
             deviceEntity.setCreationTime(device.creationTime());
+        }
+        if (device.version() != null) {
+            deviceEntity.setVersion(device.version());
         }
         return deviceEntity;
     }
