@@ -26,4 +26,14 @@ public record Device (
         @Schema(description = "Version number for optimistic locking (increments with each update)", example = "0")
         Long version
 ){
+    public Device {
+        brand = normalizeBrand(brand);
+    }
+
+    private static String normalizeBrand(String brand) {
+        if (brand == null || brand.isEmpty()) {
+            return brand;
+        }
+        return brand.toUpperCase();
+    }
 }

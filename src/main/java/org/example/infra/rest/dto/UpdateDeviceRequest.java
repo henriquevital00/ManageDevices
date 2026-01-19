@@ -23,6 +23,16 @@ public record UpdateDeviceRequest(
         @NotNull(message = "Version is mandatory for optimistic locking")
         Long version
 ) {
+    public UpdateDeviceRequest {
+        brand = normalizeBrand(brand);
+    }
+
+    private static String normalizeBrand(String brand) {
+        if (brand == null || brand.isEmpty()) {
+            return brand;
+        }
+        return brand.toUpperCase();
+    }
 }
 
 

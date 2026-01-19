@@ -39,7 +39,7 @@ UpdateDeviceImpl implements UpdateDeviceUseCase {
             if (!device.name().equals(request.name())) {
                 throw new DeviceInUseException("name", "update");
             }
-            if (!device.brand().equals(normalizeBrand(request.brand()))) {
+            if (!device.brand().equals(request.brand())) {
                 throw new DeviceInUseException("brand", "update");
             }
         }
@@ -47,7 +47,7 @@ UpdateDeviceImpl implements UpdateDeviceUseCase {
         Device updatedDevice = new Device(
                 device.id(),
                 request.name(),
-                normalizeBrand(request.brand()),
+                request.brand(),
                 request.state(),
                 device.creationTime(),
                 request.version()
@@ -55,12 +55,5 @@ UpdateDeviceImpl implements UpdateDeviceUseCase {
 
         deviceHistoryRepositoryPort.save(updatedDevice, OperationTypeEnum.UPDATE);
         return deviceRepositoryPort.save(updatedDevice);
-    }
-
-    private String normalizeBrand(String brand) {
-        if (brand == null || brand.isEmpty()) {
-            return brand;
-        }
-        return brand.toUpperCase();
     }
 }

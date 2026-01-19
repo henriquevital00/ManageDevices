@@ -27,7 +27,7 @@ public class CreateDeviceImpl implements CreateDeviceUseCase {
         Device newDevice = new Device(
                 null,
                 request.name(),
-                normalizeBrand(request.brand()),
+                request.brand(),
                 request.state(),
                 LocalDateTime.now(),
                 null
@@ -36,12 +36,5 @@ public class CreateDeviceImpl implements CreateDeviceUseCase {
         Device savedDevice = deviceRepositoryPort.save(newDevice);
         deviceHistoryRepositoryPort.save(savedDevice, OperationTypeEnum.CREATION);
         return savedDevice;
-    }
-
-    private String normalizeBrand(String brand) {
-        if (brand == null || brand.isEmpty()) {
-            return brand;
-        }
-        return brand.toUpperCase();
     }
 }
