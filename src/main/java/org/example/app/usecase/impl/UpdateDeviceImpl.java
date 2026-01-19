@@ -1,10 +1,13 @@
 package org.example.app.usecase.impl;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.example.app.ports.out.DeviceHistoryRepositoryPort;
 import org.example.app.ports.out.DeviceRepositoryPort;
 import org.example.app.usecase.UpdateDeviceUseCase;
 import org.example.domain.Device;
 import org.example.domain.enums.DeviceStateEnum;
+import org.example.domain.enums.OperationTypeEnum;
 import org.example.domain.exception.DeviceInUseException;
 import org.example.domain.exception.DeviceNotFoundException;
 import org.example.infra.rest.dto.UpdateDeviceRequest;
@@ -19,7 +22,9 @@ public class
 UpdateDeviceImpl implements UpdateDeviceUseCase {
 
     private final DeviceRepositoryPort deviceRepositoryPort;
+    private final DeviceHistoryRepositoryPort deviceHistoryRepositoryPort;
 
+    @Transactional
     @Override
     public Device update(UUID id, UpdateDeviceRequest request) {
         Optional<Device> existingDevice = deviceRepositoryPort.findById(id);
@@ -48,6 +53,7 @@ UpdateDeviceImpl implements UpdateDeviceUseCase {
                 device.version()
         );
 
+        deviceHistoryRepositoryPort.save(updatedDevice, OperationTypeEnum.UPDATE);
         return deviceRepositoryPort.save(updatedDevice);
     }
 
