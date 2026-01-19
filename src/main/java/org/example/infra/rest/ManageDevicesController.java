@@ -8,11 +8,15 @@ import org.example.app.usecase.DeleteDeviceResult;
 import org.example.app.usecase.DeleteDeviceUseCase;
 import org.example.app.usecase.GetDeviceByIdUseCase;
 import org.example.app.usecase.ListDevicesUseCase;
+import org.example.app.usecase.UpdateDeviceUseCase;
 import org.example.domain.Device;
 import org.example.domain.enums.DeviceStateEnum;
+import org.example.domain.exception.DeviceInUseException;
+import org.example.domain.exception.DeviceNotFoundException;
 import org.example.domain.filter.DeviceFilter;
 import org.example.domain.model.CursorPage;
 import org.example.infra.rest.dto.CreateDeviceRequest;
+import org.example.infra.rest.dto.UpdateDeviceRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -32,6 +36,7 @@ public class ManageDevicesController {
     private final GetDeviceByIdUseCase getDeviceByIdUseCase;
     private final DeleteDeviceUseCase deleteDeviceUseCase;
     private final ListDevicesUseCase listDevicesUseCase;
+    private final UpdateDeviceUseCase updateDeviceUseCase;
 
     @PostMapping
     public ResponseEntity<Device> createDevice(@Valid @RequestBody CreateDeviceRequest createDeviceRequest){
@@ -65,5 +70,18 @@ public class ManageDevicesController {
             case NOT_FOUND -> ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             case IN_USE -> ResponseEntity.status(HttpStatus.CONFLICT).build();
         };
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Device> updateDevice(@PathVariable UUID id,
+                                               @Valid @RequestBody UpdateDeviceRequest updateDeviceRequest) {
+        try {
+            Device updatedDevice = updateDeviceUseCase.update(id, updateDeviceRequest);
+            return ResponseEntity.ok(updatedDevice);
+        } catch (DeviceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (DeviceInUseException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
     }
 }
