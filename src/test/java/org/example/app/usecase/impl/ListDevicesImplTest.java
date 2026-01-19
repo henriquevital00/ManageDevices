@@ -40,7 +40,7 @@ class ListDevicesImplTest {
 
     @BeforeEach
     void setUp() {
-        filter = new DeviceFilter("SAMSUNG", DeviceStateEnum.AVAILABLE);
+        filter = new DeviceFilter("SAMSUNG", DeviceStateEnum.AVAILABLE, null);
 
         devices = Arrays.asList(
                 new Device(UUID.randomUUID(), "Device 1", "SAMSUNG", DeviceStateEnum.AVAILABLE, LocalDateTime.now(), 0L),

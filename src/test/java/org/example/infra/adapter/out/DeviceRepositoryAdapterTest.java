@@ -355,8 +355,8 @@ class DeviceRepositoryAdapterTest {
     @DisplayName("Should filter by brand")
     void shouldFilterByBrand() {
         // Given
-        DeviceFilter filter = new DeviceFilter("SAMSUNG", null);
-        List<DeviceEntity> entities = Arrays.asList(deviceEntity);
+        DeviceFilter filter = new DeviceFilter("SAMSUNG", null, null);
+        List<DeviceEntity> entities = List.of(deviceEntity);
         PageImpl<DeviceEntity> page = new PageImpl<>(entities);
 
         when(deviceRepository.findAll(any(Specification.class), any(Pageable.class)))
@@ -374,8 +374,8 @@ class DeviceRepositoryAdapterTest {
     @DisplayName("Should filter by state")
     void shouldFilterByState() {
         // Given
-        DeviceFilter filter = new DeviceFilter(null, DeviceStateEnum.AVAILABLE);
-        List<DeviceEntity> entities = Arrays.asList(deviceEntity);
+        DeviceFilter filter = new DeviceFilter(null, DeviceStateEnum.AVAILABLE, null);
+        List<DeviceEntity> entities = List.of(deviceEntity);
         PageImpl<DeviceEntity> page = new PageImpl<>(entities);
 
         when(deviceRepository.findAll(any(Specification.class), any(Pageable.class)))
@@ -393,8 +393,8 @@ class DeviceRepositoryAdapterTest {
     @DisplayName("Should filter by brand and state combined")
     void shouldFilterByBrandAndStateCombined() {
         // Given
-        DeviceFilter filter = new DeviceFilter("SAMSUNG", DeviceStateEnum.AVAILABLE);
-        List<DeviceEntity> entities = Arrays.asList(deviceEntity);
+        DeviceFilter filter = new DeviceFilter("SAMSUNG", DeviceStateEnum.AVAILABLE, null);
+        List<DeviceEntity> entities = List.of(deviceEntity);
         PageImpl<DeviceEntity> page = new PageImpl<>(entities);
 
         when(deviceRepository.findAll(any(Specification.class), any(Pageable.class)))
@@ -413,7 +413,7 @@ class DeviceRepositoryAdapterTest {
     @DisplayName("Should return empty page when no devices match filter")
     void shouldReturnEmptyPageWhenNoDevicesMatchFilter() {
         // Given
-        DeviceFilter filter = new DeviceFilter("NONEXISTENT", null);
+        DeviceFilter filter = new DeviceFilter("NONEXISTENT", null, null);
         PageImpl<DeviceEntity> emptyPage = new PageImpl<>(Collections.emptyList());
 
         when(deviceRepository.findAll(any(Specification.class), any(Pageable.class)))
@@ -433,7 +433,7 @@ class DeviceRepositoryAdapterTest {
     void shouldSetNextCursorToNullWhenNoMorePages() {
         // Given
         DeviceFilter filter = DeviceFilter.empty();
-        List<DeviceEntity> entities = Arrays.asList(deviceEntity);
+        List<DeviceEntity> entities = List.of(deviceEntity);
         PageImpl<DeviceEntity> page = new PageImpl<>(entities);
 
         when(deviceRepository.findAll(any(Specification.class), any(Pageable.class)))

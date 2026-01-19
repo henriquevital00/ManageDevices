@@ -455,7 +455,7 @@ class GetDeviceByIdImplTest {
     @DisplayName("Should return Optional with device brand intact")
     void shouldReturnOptionalWithDeviceBrandIntact() {
         // Given
-        String expectedBrand = "Samsung";
+        String expectedBrand = "SAMSUNG";
         Device deviceWithBrand = new Device(
                 deviceId,
                 "Device",

@@ -311,7 +311,7 @@ class ManageDevicesControllerTest {
     @DisplayName("GET /v1/devices - Should list devices with filter")
     void shouldListDevicesWithFilter() throws Exception {
         // Given
-        DeviceFilter filter = new DeviceFilter("SAMSUNG", DeviceStateEnum.AVAILABLE);
+        DeviceFilter filter = new DeviceFilter("SAMSUNG", DeviceStateEnum.AVAILABLE, null);
         List<Device> devices = List.of(device);
         CursorPage<Device> page = new CursorPage<>(devices, null, 20, false);
 

@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import jakarta.persistence.criteria.Predicate;
 
 @Repository
 @RequiredArgsConstructor
@@ -84,6 +85,15 @@ public class DeviceRepositoryAdapter implements DeviceRepositoryPort {
         if(filter.state() != null) {
             spec = spec.and((root, query, cb) ->
                     cb.equal(root.get("state"), filter.state()));
+        }
+
+        String search = filter.normalizedSearchTerm();
+        if (search != null) {
+            spec = spec.and((root, query, cb) -> {
+                Predicate nameLike = cb.like(cb.lower(root.get("name")), "%" + search + "%");
+                Predicate brandLike = cb.like(cb.lower(root.get("brand")), "%" + search + "%");
+                return cb.or(nameLike, brandLike);
+            });
         }
 
         return spec;

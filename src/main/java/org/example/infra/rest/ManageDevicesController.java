@@ -191,9 +191,12 @@ public class ManageDevicesController {
             @RequestParam(required = false) UUID cursor,
 
             @Parameter(description = "Number of devices to return per page", example = "20")
-            @RequestParam(defaultValue = "20") int size){
+            @RequestParam(defaultValue = "20") int size,
+
+            @Parameter(description = "Search for name and/or brand", example = "Pro Max")
+            @RequestParam(required = false) String search){
         String normalizedBrand = brand != null ? brand.toUpperCase() : null;
-        DeviceFilter filter = new DeviceFilter(normalizedBrand, state);
+        DeviceFilter filter = new DeviceFilter(normalizedBrand, state, search);
         CursorPage<Device> devices = listDevicesUseCase.list(filter, cursor, size);
         return ResponseEntity.ok(devices);
     }
