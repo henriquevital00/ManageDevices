@@ -23,6 +23,7 @@ import org.example.domain.filter.DeviceFilter;
 import org.example.domain.model.CursorPage;
 import org.example.infra.rest.dto.CreateDeviceRequest;
 import org.example.infra.rest.dto.ErrorResponse;
+import org.example.infra.rest.dto.PartialUpdateDeviceRequest;
 import org.example.infra.rest.dto.UpdateDeviceRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -378,6 +379,91 @@ public class ManageDevicesController {
             )
             @Valid @RequestBody UpdateDeviceRequest updateDeviceRequest) {
         Device updatedDevice = updateDeviceUseCase.update(id, updateDeviceRequest);
+        return ResponseEntity.ok(updatedDevice);
+    }
+
+    @PatchMapping("/{id}")
+    @Operation(
+            summary = "Partially update a device",
+            description = """
+                    Updates only the provided fields of an existing device.
+                    - Name and brand cannot be updated if device is IN_USE
+                    - State can be changed at any time
+                    - Uses optimistic locking (version field) to prevent concurrent modifications
+                    - If version mismatch occurs, returns 409 Conflict
+                    """
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Device partially updated successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = Device.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "id": "123e4567-e89b-12d3-a456-426614174000",
+                                      "name": "Temperature Sensor A1",
+                                      "brand": "SAMSUNG",
+                                      "state": "AVAILABLE",
+                                      "creationTime": "2024-01-19T10:30:00",
+                                      "version": 1
+                                    }
+                                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid input - validation failed",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Device not found",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "Conflict - Name/brand update on IN_USE device, or optimistic locking failure",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timestamp": "2024-01-19T10:30:00",
+                                      "status": 409,
+                                      "error": "Device In Use",
+                                      "message": "Cannot update name while device is IN_USE"
+                                    }
+                                    """)
+                    )
+            )
+    })
+    public ResponseEntity<Device> partialUpdateDevice(
+            @Parameter(description = "Device UUID to update", example = "123e4567-e89b-12d3-a456-426614174000", required = true)
+            @PathVariable UUID id,
+
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Partial device update with only fields to be changed",
+                    required = true,
+                    content = @Content(
+                            schema = @Schema(implementation = PartialUpdateDeviceRequest.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "state": "AVAILABLE",
+                                      "version": 0
+                                    }
+                                    """)
+                    )
+            )
+            @Valid @RequestBody PartialUpdateDeviceRequest partialUpdateRequest) {
+        Device updatedDevice = updateDeviceUseCase.partialUpdate(id, partialUpdateRequest);
         return ResponseEntity.ok(updatedDevice);
     }
 }

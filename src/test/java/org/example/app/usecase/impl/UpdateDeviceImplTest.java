@@ -8,6 +8,7 @@ import org.example.domain.enums.OperationTypeEnum;
 import org.example.domain.exception.DeviceInUseException;
 import org.example.domain.exception.DeviceNotFoundException;
 import org.example.infra.rest.dto.UpdateDeviceRequest;
+import org.example.infra.rest.dto.PartialUpdateDeviceRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -344,5 +345,422 @@ class UpdateDeviceImplTest {
 
         // Then
         verify(deviceHistoryRepositoryPort).save(any(Device.class), eq(OperationTypeEnum.UPDATE));
+    }
+
+    @Test
+    @DisplayName("Partial Update - Should update only state")
+    void partialUpdateShouldUpdateOnlyState() {
+        // Given
+        PartialUpdateDeviceRequest request = new PartialUpdateDeviceRequest(
+                Optional.empty(),
+                Optional.empty(),
+                Optional.of(DeviceStateEnum.IN_USE),
+                0L
+        );
+
+        Device updatedDevice = new Device(
+                deviceId,
+                existingDevice.name(),
+                existingDevice.brand(),
+                DeviceStateEnum.IN_USE,
+                existingDevice.creationTime(),
+                0L
+        );
+
+        when(deviceRepositoryPort.findById(deviceId)).thenReturn(Optional.of(existingDevice));
+        when(deviceRepositoryPort.save(any(Device.class))).thenReturn(updatedDevice);
+
+        // When
+        Device result = updateDeviceUseCase.partialUpdate(deviceId, request);
+
+        // Then
+        assertThat(result.state()).isEqualTo(DeviceStateEnum.IN_USE);
+        assertThat(result.name()).isEqualTo("Original Name");
+        assertThat(result.brand()).isEqualTo("SAMSUNG");
+
+        verify(deviceRepositoryPort).save(any(Device.class));
+        verify(deviceHistoryRepositoryPort).save(any(Device.class), eq(OperationTypeEnum.UPDATE));
+    }
+
+    @Test
+    @DisplayName("Partial Update - Should update only name and brand on AVAILABLE device")
+    void partialUpdateShouldUpdateNameAndBrandOnAvailableDevice() {
+        // Given
+        PartialUpdateDeviceRequest request = new PartialUpdateDeviceRequest(
+                Optional.of("New Name"),
+                Optional.of("lg"),
+                Optional.empty(),
+                0L
+        );
+
+        Device updatedDevice = new Device(
+                deviceId,
+                "New Name",
+                "LG",
+                existingDevice.state(),
+                existingDevice.creationTime(),
+                0L
+        );
+
+        when(deviceRepositoryPort.findById(deviceId)).thenReturn(Optional.of(existingDevice));
+        when(deviceRepositoryPort.save(any(Device.class))).thenReturn(updatedDevice);
+
+        // When
+        Device result = updateDeviceUseCase.partialUpdate(deviceId, request);
+
+        // Then
+        assertThat(result.name()).isEqualTo("New Name");
+        assertThat(result.brand()).isEqualTo("LG");
+        assertThat(result.state()).isEqualTo(DeviceStateEnum.AVAILABLE);
+    }
+
+    @Test
+    @DisplayName("Partial Update - Should throw exception when updating name of IN_USE device")
+    void partialUpdateShouldThrowExceptionWhenUpdatingNameOfInUseDevice() {
+        // Given
+        Device inUseDevice = new Device(
+                deviceId,
+                "Original Name",
+                "SAMSUNG",
+                DeviceStateEnum.IN_USE,
+                existingDevice.creationTime(),
+                0L
+        );
+
+        PartialUpdateDeviceRequest request = new PartialUpdateDeviceRequest(
+                Optional.of("Different Name"),
+                Optional.empty(),
+                Optional.empty(),
+                0L
+        );
+
+        when(deviceRepositoryPort.findById(deviceId)).thenReturn(Optional.of(inUseDevice));
+
+        // When & Then
+        assertThatThrownBy(() -> updateDeviceUseCase.partialUpdate(deviceId, request))
+                .isInstanceOf(DeviceInUseException.class)
+                .hasMessageContaining("Cannot update name while device is IN_USE");
+
+        verify(deviceRepositoryPort, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Partial Update - Should throw exception when updating brand of IN_USE device")
+    void partialUpdateShouldThrowExceptionWhenUpdatingBrandOfInUseDevice() {
+        // Given
+        Device inUseDevice = new Device(
+                deviceId,
+                "Device Name",
+                "SAMSUNG",
+                DeviceStateEnum.IN_USE,
+                existingDevice.creationTime(),
+                0L
+        );
+
+        PartialUpdateDeviceRequest request = new PartialUpdateDeviceRequest(
+                Optional.empty(),
+                Optional.of("apple"),
+                Optional.empty(),
+                0L
+        );
+
+        when(deviceRepositoryPort.findById(deviceId)).thenReturn(Optional.of(inUseDevice));
+
+        // When & Then
+        assertThatThrownBy(() -> updateDeviceUseCase.partialUpdate(deviceId, request))
+                .isInstanceOf(DeviceInUseException.class)
+                .hasMessageContaining("Cannot update brand while device is IN_USE");
+
+        verify(deviceRepositoryPort, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Partial Update - Should allow state change on IN_USE device")
+    void partialUpdateShouldAllowStateChangeOnInUseDevice() {
+        // Given
+        Device inUseDevice = new Device(
+                deviceId,
+                "Device Name",
+                "SAMSUNG",
+                DeviceStateEnum.IN_USE,
+                existingDevice.creationTime(),
+                0L
+        );
+
+        PartialUpdateDeviceRequest request = new PartialUpdateDeviceRequest(
+                Optional.empty(),
+                Optional.empty(),
+                Optional.of(DeviceStateEnum.AVAILABLE),
+                0L
+        );
+
+        Device updatedDevice = new Device(
+                deviceId,
+                inUseDevice.name(),
+                inUseDevice.brand(),
+                DeviceStateEnum.AVAILABLE,
+                inUseDevice.creationTime(),
+                0L
+        );
+
+        when(deviceRepositoryPort.findById(deviceId)).thenReturn(Optional.of(inUseDevice));
+        when(deviceRepositoryPort.save(any(Device.class))).thenReturn(updatedDevice);
+
+        // When
+        Device result = updateDeviceUseCase.partialUpdate(deviceId, request);
+
+        // Then
+        assertThat(result.state()).isEqualTo(DeviceStateEnum.AVAILABLE);
+        verify(deviceRepositoryPort).save(any(Device.class));
+    }
+
+    @Test
+    @DisplayName("Partial Update - Should throw exception when device not found")
+    void partialUpdateShouldThrowExceptionWhenDeviceNotFound() {
+        // Given
+        PartialUpdateDeviceRequest request = new PartialUpdateDeviceRequest(
+                Optional.of("New Name"),
+                Optional.empty(),
+                Optional.empty(),
+                0L
+        );
+
+        when(deviceRepositoryPort.findById(deviceId)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> updateDeviceUseCase.partialUpdate(deviceId, request))
+                .isInstanceOf(DeviceNotFoundException.class)
+                .hasMessageContaining("Device not found with id: " + deviceId);
+
+        verify(deviceRepositoryPort, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Partial Update - Should normalize brand to uppercase")
+    void partialUpdateShouldNormalizeBrandToUppercase() {
+        // Given
+        PartialUpdateDeviceRequest request = new PartialUpdateDeviceRequest(
+                Optional.empty(),
+                Optional.of("sony"),
+                Optional.empty(),
+                0L
+        );
+
+        Device updatedDevice = new Device(
+                deviceId,
+                existingDevice.name(),
+                "SONY",
+                existingDevice.state(),
+                existingDevice.creationTime(),
+                0L
+        );
+
+        when(deviceRepositoryPort.findById(deviceId)).thenReturn(Optional.of(existingDevice));
+        when(deviceRepositoryPort.save(any(Device.class))).thenReturn(updatedDevice);
+
+        // When
+        Device result = updateDeviceUseCase.partialUpdate(deviceId, request);
+
+        // Then
+        assertThat(result.brand()).isEqualTo("SONY");
+    }
+
+    @Test
+    @DisplayName("Partial Update - Should preserve creation time")
+    void partialUpdateShouldPreserveCreationTime() {
+        // Given
+        LocalDateTime originalCreationTime = existingDevice.creationTime();
+
+        PartialUpdateDeviceRequest request = new PartialUpdateDeviceRequest(
+                Optional.of("New Name"),
+                Optional.empty(),
+                Optional.empty(),
+                0L
+        );
+
+        Device updatedDevice = new Device(
+                deviceId,
+                "New Name",
+                existingDevice.brand(),
+                existingDevice.state(),
+                originalCreationTime,
+                0L
+        );
+
+        when(deviceRepositoryPort.findById(deviceId)).thenReturn(Optional.of(existingDevice));
+        when(deviceRepositoryPort.save(any(Device.class))).thenReturn(updatedDevice);
+
+        // When
+        Device result = updateDeviceUseCase.partialUpdate(deviceId, request);
+
+        // Then
+        assertThat(result.creationTime()).isEqualTo(originalCreationTime);
+    }
+
+    @Test
+    @DisplayName("Partial Update - Should save device history")
+    void partialUpdateShouldSaveDeviceHistory() {
+        // Given
+        PartialUpdateDeviceRequest request = new PartialUpdateDeviceRequest(
+                Optional.of("New Name"),
+                Optional.empty(),
+                Optional.empty(),
+                0L
+        );
+
+        Device updatedDevice = new Device(
+                deviceId,
+                "New Name",
+                existingDevice.brand(),
+                existingDevice.state(),
+                existingDevice.creationTime(),
+                0L
+        );
+
+        when(deviceRepositoryPort.findById(deviceId)).thenReturn(Optional.of(existingDevice));
+        when(deviceRepositoryPort.save(any(Device.class))).thenReturn(updatedDevice);
+
+        // When
+        updateDeviceUseCase.partialUpdate(deviceId, request);
+
+        // Then
+        verify(deviceHistoryRepositoryPort).save(any(Device.class), eq(OperationTypeEnum.UPDATE));
+    }
+
+    @Test
+    @DisplayName("Partial Update - Should handle empty optional fields (keep existing)")
+    void partialUpdateShouldHandleEmptyOptionalFields() {
+        // Given
+        PartialUpdateDeviceRequest request = new PartialUpdateDeviceRequest(
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                0L
+        );
+
+        Device updatedDevice = new Device(
+                deviceId,
+                existingDevice.name(),
+                existingDevice.brand(),
+                existingDevice.state(),
+                existingDevice.creationTime(),
+                0L
+        );
+
+        when(deviceRepositoryPort.findById(deviceId)).thenReturn(Optional.of(existingDevice));
+        when(deviceRepositoryPort.save(any(Device.class))).thenReturn(updatedDevice);
+
+        // When
+        Device result = updateDeviceUseCase.partialUpdate(deviceId, request);
+
+        // Then
+        assertThat(result.name()).isEqualTo("Original Name");
+        assertThat(result.brand()).isEqualTo("SAMSUNG");
+        assertThat(result.state()).isEqualTo(DeviceStateEnum.AVAILABLE);
+    }
+
+    @Test
+    @DisplayName("Partial Update - Should update all fields when all provided")
+    void partialUpdateShouldUpdateAllFieldsWhenAllProvided() {
+        // Given
+        PartialUpdateDeviceRequest request = new PartialUpdateDeviceRequest(
+                Optional.of("Updated Name"),
+                Optional.of("lg"),
+                Optional.of(DeviceStateEnum.INACTIVE),
+                0L
+        );
+
+        Device updatedDevice = new Device(
+                deviceId,
+                "Updated Name",
+                "LG",
+                DeviceStateEnum.INACTIVE,
+                existingDevice.creationTime(),
+                0L
+        );
+
+        when(deviceRepositoryPort.findById(deviceId)).thenReturn(Optional.of(existingDevice));
+        when(deviceRepositoryPort.save(any(Device.class))).thenReturn(updatedDevice);
+
+        // When
+        Device result = updateDeviceUseCase.partialUpdate(deviceId, request);
+
+        // Then
+        assertThat(result.name()).isEqualTo("Updated Name");
+        assertThat(result.brand()).isEqualTo("LG");
+        assertThat(result.state()).isEqualTo(DeviceStateEnum.INACTIVE);
+    }
+
+    @Test
+    @DisplayName("Partial Update - Should allow updating name and brand when same as current on IN_USE device")
+    void partialUpdateShouldAllowSameNameAndBrandOnInUseDevice() {
+        // Given
+        Device inUseDevice = new Device(
+                deviceId,
+                "Device Name",
+                "SAMSUNG",
+                DeviceStateEnum.IN_USE,
+                existingDevice.creationTime(),
+                0L
+        );
+
+        // Request with same name and brand
+        PartialUpdateDeviceRequest request = new PartialUpdateDeviceRequest(
+                Optional.of("Device Name"),
+                Optional.of("samsung"),
+                Optional.of(DeviceStateEnum.AVAILABLE),
+                0L
+        );
+
+        Device updatedDevice = new Device(
+                deviceId,
+                "Device Name",
+                "SAMSUNG",
+                DeviceStateEnum.AVAILABLE,
+                inUseDevice.creationTime(),
+                0L
+        );
+
+        when(deviceRepositoryPort.findById(deviceId)).thenReturn(Optional.of(inUseDevice));
+        when(deviceRepositoryPort.save(any(Device.class))).thenReturn(updatedDevice);
+
+        // When
+        Device result = updateDeviceUseCase.partialUpdate(deviceId, request);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.name()).isEqualTo("Device Name");
+        assertThat(result.brand()).isEqualTo("SAMSUNG");
+        verify(deviceRepositoryPort).save(any(Device.class));
+    }
+
+    @Test
+    @DisplayName("Partial Update - Should update version")
+    void partialUpdateShouldUpdateVersion() {
+        // Given
+        PartialUpdateDeviceRequest request = new PartialUpdateDeviceRequest(
+                Optional.of("New Name"),
+                Optional.empty(),
+                Optional.empty(),
+                0L
+        );
+
+        Device updatedDevice = new Device(
+                deviceId,
+                "New Name",
+                existingDevice.brand(),
+                existingDevice.state(),
+                existingDevice.creationTime(),
+                0L
+        );
+
+        when(deviceRepositoryPort.findById(deviceId)).thenReturn(Optional.of(existingDevice));
+        when(deviceRepositoryPort.save(any(Device.class))).thenReturn(updatedDevice);
+
+        // When
+        updateDeviceUseCase.partialUpdate(deviceId, request);
+
+        // Then
+        verify(deviceRepositoryPort).save(argThat(device -> device.version() == 0L));
     }
 }

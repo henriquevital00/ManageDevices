@@ -10,6 +10,7 @@ import org.example.domain.enums.DeviceStateEnum;
 import org.example.domain.enums.OperationTypeEnum;
 import org.example.domain.exception.DeviceInUseException;
 import org.example.domain.exception.DeviceNotFoundException;
+import org.example.infra.rest.dto.PartialUpdateDeviceRequest;
 import org.example.infra.rest.dto.UpdateDeviceRequest;
 import org.springframework.stereotype.Service;
 
@@ -49,6 +50,39 @@ UpdateDeviceImpl implements UpdateDeviceUseCase {
                 request.name(),
                 request.brand(),
                 request.state(),
+                device.creationTime(),
+                request.version()
+        );
+
+        deviceHistoryRepositoryPort.save(updatedDevice, OperationTypeEnum.UPDATE);
+        return deviceRepositoryPort.save(updatedDevice);
+    }
+
+    @Transactional
+    @Override
+    public Device partialUpdate(UUID id, PartialUpdateDeviceRequest request) {
+        Optional<Device> existingDevice = deviceRepositoryPort.findById(id);
+
+        if (existingDevice.isEmpty()) {
+            throw new DeviceNotFoundException(id);
+        }
+
+        Device device = existingDevice.get();
+
+        if (device.state() == DeviceStateEnum.IN_USE) {
+            if (request.name().isPresent() && !device.name().equals(request.name().get())) {
+                throw new DeviceInUseException("name", "update");
+            }
+            if (request.brand().isPresent() && !device.brand().equals(request.brand().get())) {
+                throw new DeviceInUseException("brand", "update");
+            }
+        }
+
+        Device updatedDevice = new Device(
+                device.id(),
+                request.name().orElse(device.name()),
+                request.brand().orElse(device.brand()),
+                request.state().orElse(device.state()),
                 device.creationTime(),
                 request.version()
         );
