@@ -1,0 +1,43 @@
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: managedevices-db
+    environment:
+      POSTGRES_DB: managedevices
+      POSTGRES_USER: managedevices
+      POSTGRES_PASSWORD: managedevices123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U managedevices"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  app:
+    build: .
+    container_name: managedevices-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/managedevices
+      SPRING_DATASOURCE_USERNAME: managedevices
+      SPRING_DATASOURCE_PASSWORD: managedevices123
+      SERVER_PORT: 8080
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge

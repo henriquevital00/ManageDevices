@@ -1,0 +1,140 @@
+package org.example.infra.adapter.out;
+
+import jakarta.persistence.OptimisticLockException;
+import lombok.RequiredArgsConstructor;
+import org.example.app.ports.out.DeviceRepositoryPort;
+import org.example.domain.Device;
+import org.example.domain.enums.DeviceStateEnum;
+import org.example.domain.filter.DeviceFilter;
+import org.example.domain.model.CursorPage;
+import org.example.infra.adapter.out.repository.DeviceRepository;
+import org.example.infra.adapter.persistence.DeviceEntity;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import jakarta.persistence.criteria.Predicate;
+
+@Repository
+@RequiredArgsConstructor
+public class DeviceRepositoryAdapter implements DeviceRepositoryPort {
+
+    private final DeviceRepository deviceRepository;
+
+    @Override
+    public Device save(Device device) {
+        try {
+            DeviceEntity entity = toEntity(device);
+            DeviceEntity saved = deviceRepository.save(entity);
+            return toDomain(saved);
+        } catch (OptimisticLockException | org.springframework.orm.ObjectOptimisticLockingFailureException e) {
+            throw new org.example.domain.exception.OptimisticLockException(device.id());
+        }
+    }
+
+    @Override
+    public Optional<Device> findById(UUID id) {
+        return deviceRepository.findById(id).map(this::toDomain);
+    }
+
+    @Override
+    public void deleteById(UUID id) {
+        deviceRepository.deleteById(id);
+    }
+
+    @Override
+    public CursorPage<Device> findAllByCursor(DeviceFilter filter, UUID cursor, int size) {
+        Specification<DeviceEntity> spec = buildSpecification(filter);
+
+        if (cursor != null) {
+            spec = spec.and((root, query, cb) -> {
+                DeviceEntity cursorDevice = deviceRepository.findById(cursor).orElse(null);
+                if (cursorDevice != null) {
+                    return cb.or(
+                        cb.lessThan(root.get("creationTime"), cursorDevice.getCreationTime()),
+                        cb.and(
+                            cb.equal(root.get("creationTime"), cursorDevice.getCreationTime()),
+                            cb.lessThan(root.get("id").as(String.class), cursor.toString())
+                        )
+                    );
+                }
+                return cb.conjunction();
+            });
+        }
+
+        Pageable pageable = PageRequest.of(0, size + 1,
+            Sort.by(Sort.Order.desc("creationTime"), Sort.Order.desc("id")));
+        List<DeviceEntity> entities = deviceRepository.findAll(spec, pageable).getContent();
+
+        boolean hasNext = entities.size() > size;
+        List<Device> devices = entities.stream()
+                .limit(size)
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+
+        UUID nextCursor = hasNext && !devices.isEmpty()
+                ? devices.get(devices.size() - 1).id()
+                : null;
+
+        return CursorPage.of(devices, nextCursor, size, hasNext);
+    }
+
+    private Specification<DeviceEntity> buildSpecification(DeviceFilter filter) {
+        Specification<DeviceEntity> spec = Specification.where(null);
+
+        if(filter.brand() != null) {
+            spec = spec.and((root, query, cb) ->
+                    cb.equal(root.get("brand"), filter.brand()));
+        }
+
+        if(filter.state() != null) {
+            spec = spec.and((root, query, cb) ->
+                    cb.equal(root.get("state"), filter.state()));
+        }
+
+        String search = filter.normalizedSearchTerm();
+        if (search != null) {
+            spec = spec.and((root, query, cb) -> {
+                Predicate nameLike = cb.like(cb.lower(root.get("name")), "%" + search + "%");
+                Predicate brandLike = cb.like(cb.lower(root.get("brand")), "%" + search + "%");
+                return cb.or(nameLike, brandLike);
+            });
+        }
+
+        return spec;
+    }
+
+    private Device toDomain(DeviceEntity entity) {
+        return new Device(
+                entity.getId(),
+                entity.getName(),
+                entity.getBrand(),
+                entity.getState(),
+                entity.getCreationTime(),
+                entity.getVersion()
+        );
+    }
+
+    private DeviceEntity toEntity(Device device){
+        DeviceEntity deviceEntity = new DeviceEntity();
+        if (device.id() != null) {
+            deviceEntity.setId(device.id());
+        }
+        deviceEntity.setName(device.name());
+        deviceEntity.setBrand(device.brand());
+        deviceEntity.setState(device.state());
+        if (device.creationTime() != null) {
+            deviceEntity.setCreationTime(device.creationTime());
+        }
+        if (device.version() != null) {
+            deviceEntity.setVersion(device.version());
+        }
+        return deviceEntity;
+    }
+}
