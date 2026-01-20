@@ -1,0 +1,279 @@
+{
+    "info": {
+        "name": "CircuitBreakTest",
+        "description": "",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "ManageDevices",
+            "description": "",
+            "item": [
+                {
+                    "name": "Create Device",
+                    "description": "",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        }
+                    ],
+                    "auth": {},
+                    "request": {
+                        "auth": {},
+                        "method": "POST",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Iphone 17\",\n    \"brand\": \"Apple\",\n    \"state\": \"IN_USE\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8080/v1/devices",
+                            "path": [
+                                "v1",
+                                "devices"
+                            ],
+                            "host": [
+                                "localhost"
+                            ],
+                            "protocol": "http",
+                            "port": "8080",
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "GetDeviceById",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {},
+                        "method": "GET",
+                        "body": {},
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8080/v1/devices/{{id}}",
+                            "path": [
+                                "v1",
+                                "devices",
+                                "{{id}}"
+                            ],
+                            "host": [
+                                "localhost"
+                            ],
+                            "protocol": "http",
+                            "port": "8080",
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "Delete Device By Id",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {},
+                        "method": "DELETE",
+                        "body": {},
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8080/v1/devices/{{id}}",
+                            "path": [
+                                "v1",
+                                "devices",
+                                "{{id}}"
+                            ],
+                            "host": [
+                                "localhost"
+                            ],
+                            "protocol": "http",
+                            "port": "8080",
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "GetByDynamicFilter",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {},
+                        "method": "GET",
+                        "body": {},
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8080/v1/devices",
+                            "path": [
+                                "v1",
+                                "devices"
+                            ],
+                            "host": [
+                                "localhost"
+                            ],
+                            "protocol": "http",
+                            "port": "8080",
+                            "query": [
+                                {
+                                    "key": "brand",
+                                    "value": "Apple",
+                                    "description": "",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "state",
+                                    "value": "IN_USE",
+                                    "description": "",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "search",
+                                    "value": "aPp",
+                                    "description": "",
+                                    "type": "string"
+                                }
+                            ],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "Update device",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {},
+                        "method": "PUT",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Iphone 17\",\n    \"brand\": \"APPLE\",\n    \"state\": \"AVAILABLE\",\n    \"version\": 0\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8080/v1/devices/{{id}}",
+                            "path": [
+                                "v1",
+                                "devices",
+                                "{{id}}"
+                            ],
+                            "host": [
+                                "localhost"
+                            ],
+                            "protocol": "http",
+                            "port": "8080",
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "Patch device",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {},
+                        "method": "PATCH",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Iphone 17\",\n    \"state\": \"AVAILABLE\",\n    \"version\": 0\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8080/v1/devices/{{id}}",
+                            "path": [
+                                "v1",
+                                "devices",
+                                "{{id}}"
+                            ],
+                            "host": [
+                                "localhost"
+                            ],
+                            "protocol": "http",
+                            "port": "8080",
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                }
+            ],
+            "event": [
+                {
+                    "listen": "prerequest",
+                    "script": {
+                        "exec": [],
+                        "type": "text/javascript",
+                        "packages": {}
+                    }
+                },
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [],
+                        "type": "text/javascript",
+                        "packages": {}
+                    }
+                }
+            ],
+            "auth": {}
+        }
+    ],
+    "variable": [],
+    "event": [],
+    "auth": {}
+}
